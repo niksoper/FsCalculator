@@ -47,7 +47,7 @@ let parseStack (input : string) =
     |> Array.map parsePart
     |> Array.toList
 
-let rec calculate (stack : CalculationPart list) =
+let rec calculate stack =
     match stack with
     | [] -> raise (NoInputException())
     | [Number n] -> n
