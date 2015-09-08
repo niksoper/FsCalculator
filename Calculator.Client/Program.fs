@@ -1,6 +1,11 @@
 ﻿open System
 open System.Threading
 
+let intro() = 
+    printfn "Stack Based Calculator"
+    printfn ""
+    printfn "Supported operators are: %s" Calc.supportedOperators
+
 let rec mainLoop() = 
     let input = Console.ReadLine()
     match input with 
@@ -17,6 +22,7 @@ let rec mainLoop() =
 
 [<EntryPoint>]
 let main argv = 
+    intro()
     mainLoop()
     printfn "Don't leave me :( "
     Thread.Sleep(750)

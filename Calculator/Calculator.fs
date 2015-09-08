@@ -10,24 +10,27 @@ type CalculationPart =
 | Number of decimal
 | Operation of (decimal -> decimal -> decimal)
 
+let operations = 
+    [ "+", (+)
+      "-", (-)
+      "*", (*)
+      "/", (/)
+      "%", (%) ]
+
+let (|StrOp|_|) str = 
+    operations
+    |> Map.ofList
+    |> Map.tryFind str
+
 let (|StrNum|_|) str =
     match Decimal.TryParse(str) with
     | (true , value) -> Some(value)
     | _ -> None
 
-let (|StrOp|_|) str =
-    match str with
-    | "+" -> Some(+)
-    | "-" -> Some(-)
-    | "*" -> Some(*)
-    | "/" -> Some(/)
-    | "%" -> Some(%)
-    | _ -> None
-
 let parsePart part =
     match part with
-    | StrNum n         -> Number(n)
-    | StrOp o          -> Operation(o)
+    | StrNum n      -> Number(n)
+    | StrOp o       -> Operation(o)
     | unrecognised  -> raise (UnsupportedOperatorException(unrecognised))
 
 let pop stack =
@@ -62,3 +65,7 @@ let tryCalculate input =
     input
     |> parseStack
     |> calculate 
+
+let supportedOperators = 
+    let symbols = operations |> List.map (fun (c,f) -> c)
+    String.Join(" ", symbols)
