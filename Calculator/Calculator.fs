@@ -45,9 +45,9 @@ let (|StrNum|_|) str =
 
 let parsePart part =
     match part with
-    | StrNum n      -> Success <| Number(n)
-    | StrOp o       -> Success <| Operation(o)
-    | unrecognised  -> Failure UnsupportedOperatorError
+    | StrNum n      -> Number(n)
+    | StrOp o       -> Operation(o)
+    | unrecognised  -> raise (UnsupportedOperatorException(unrecognised))
 
 let pop stack =
     match stack with
@@ -58,28 +58,15 @@ let pop stack =
 
 let push part stack = part :: stack
 
-//let combineIfAllSuccesses (results : Result<'S,'F> list) = 
-//    let anyFailure = results |> List.tryFind ( fun x -> match x with | Success _ -> false | Failure _ -> true)
-//    match anyFailure with
-//    | Some failure -> failure
-//    | None -> 
-
-let combineIfAllSuccesses' (results : Result<'S,'F> list) = 
-    let successes, failures = results |> List.partition ( fun x -> match x with | Success _ -> false | Failure _ -> true)
-    match failures with
-    | fail :: _ -> fail
-    | _ -> successes
-
 let parseStack (input : string) = 
-    let parseResult = input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) |> Array.map parsePart
+    input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
+    |> Array.map parsePart
+    |> Array.toList
 
-    
-    //|> Array.toList
-
-let rec calculate stack =
+let rec calculate stack : Result<decimal, Error> =
     match stack with
-    | [] -> raise (NoInputException())
-    | [Number n] -> n
+    | [] -> Failure NoInputError
+    | [Number n] -> Success n
     | _ ->
         let a, stack' = pop stack
         let b, stack'' = pop stack'
@@ -88,12 +75,12 @@ let rec calculate stack =
         | Number a', Number b', Operation f' -> 
             let result = Number(f' a' b')
             push result stack''' |> calculate
-        | _ -> raise (ExpressionException())
+        | _ -> Failure ExpressionError
 
 let tryCalculate input = 
     input
     |> parseStack
-    >>= calculate 
+    |> calculate 
 
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
