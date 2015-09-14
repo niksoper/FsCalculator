@@ -43,12 +43,14 @@ let (|StrNum|_|) str =
     | (true , value) -> Some(value)
     | _ -> None
 
+// string -> Result<CalculationPart, Error>
 let parsePart part =
     match part with
-    | StrNum n      -> Number(n)
-    | StrOp o       -> Operation(o)
-    | unrecognised  -> raise (UnsupportedOperatorException(unrecognised))
+    | StrNum n      -> Success <| Number(n)
+    | StrOp o       -> Success <| Operation(o)
+    | unrecognised  -> Failure UnsupportedOperatorError
 
+// 'a list -> 'a * 'a list
 let pop stack =
     match stack with
     | top :: rest ->
@@ -58,29 +60,52 @@ let pop stack =
 
 let push part stack = part :: stack
 
+// string -> Result<CalculationPart list, Error>
 let parseStack (input : string) = 
-    input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
-    |> Array.map parsePart
-    |> Array.toList
+    let parsed = 
+        input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
+        |> Array.map parsePart
+        |> Array.toList
 
-let rec calculate stack : Result<decimal, Error> =
+    let firstFail =
+        parsed 
+        |> List.tryPick (function | Success _ -> None | Failure fail -> Some(fail) )
+
+    match firstFail with
+    | Some fail -> Failure fail
+    | _ -> 
+        parsed 
+        |> List.choose (fun result -> match result with | Success s -> Some s | _ -> None)
+        |> Success
+
+let rec calculate stack =
     match stack with
-    | [] -> Failure NoInputError
-    | [Number n] -> Success n
-    | _ ->
-        let a, stack' = pop stack
-        let b, stack'' = pop stack'
-        let f, stack''' = pop stack''
-        match (a,b,f) with
-        | Number a', Number b', Operation f' -> 
-            let result = Number(f' a' b')
-            push result stack''' |> calculate
-        | _ -> Failure ExpressionError
+    | Failure fail -> fail
+    | Success validStack ->
+        match validStack with
+        | [] -> Failure NoInputError
+        | [Number n] -> Success n
+        | _ ->
+            let a, stack' = pop validStack
+            let b, stack'' = pop stack'
+            let f, stack''' = pop stack''
+            match (a,b,f) with
+            | Number a', Number b', Operation f' -> 
+                let result = Number(f' a' b')
+                push result stack''' |> Success |> calculate
+            | _ -> Failure ExpressionError
 
 let tryCalculate input = 
     input
     |> parseStack
     |> calculate 
+
+let tryCalculate' input = 
+    let parsed = input |> parseStack
+    match parsed with
+    | Failure fail -> parsed
+    | Success _ -> parsed |> calculate
+
 
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
