@@ -2,9 +2,25 @@
 
 open System
 
+type Error = 
+| NoInputError
+| ExpressionError
+| UnsupportedOperatorError
+
 type NoInputException()                 = inherit ApplicationException("No input was provided.")
 type ExpressionException()              = inherit ApplicationException("Each operation requires an operator and exactly two operands.")
 type UnsupportedOperatorException(op)   = inherit ApplicationException(sprintf "Unrecognised operator: %s" op)
+
+type Result<'S, 'F> =
+| Success of 'S
+| Failure of 'F
+
+let bind (f : 'S -> Result<'S,'F>)  m =
+    match m with 
+    | Success s -> f s
+    | Failure f -> m
+
+let (>>=) m f = bind f m 
 
 type CalculationPart =
 | Number of decimal
@@ -29,9 +45,9 @@ let (|StrNum|_|) str =
 
 let parsePart part =
     match part with
-    | StrNum n      -> Number(n)
-    | StrOp o       -> Operation(o)
-    | unrecognised  -> raise (UnsupportedOperatorException(unrecognised))
+    | StrNum n      -> Success <| Number(n)
+    | StrOp o       -> Success <| Operation(o)
+    | unrecognised  -> Failure UnsupportedOperatorError
 
 let pop stack =
     match stack with
@@ -42,10 +58,23 @@ let pop stack =
 
 let push part stack = part :: stack
 
+//let combineIfAllSuccesses (results : Result<'S,'F> list) = 
+//    let anyFailure = results |> List.tryFind ( fun x -> match x with | Success _ -> false | Failure _ -> true)
+//    match anyFailure with
+//    | Some failure -> failure
+//    | None -> 
+
+let combineIfAllSuccesses' (results : Result<'S,'F> list) = 
+    let successes, failures = results |> List.partition ( fun x -> match x with | Success _ -> false | Failure _ -> true)
+    match failures with
+    | fail :: _ -> fail
+    | _ -> successes
+
 let parseStack (input : string) = 
-    input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
-    |> Array.map parsePart
-    |> Array.toList
+    let parseResult = input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) |> Array.map parsePart
+
+    
+    //|> Array.toList
 
 let rec calculate stack =
     match stack with
@@ -64,7 +93,7 @@ let rec calculate stack =
 let tryCalculate input = 
     input
     |> parseStack
-    |> calculate 
+    >>= calculate 
 
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
