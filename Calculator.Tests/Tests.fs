@@ -15,55 +15,68 @@ type AccountTest() =
 
   [<Test>]
   member x.OnePlusOne() = 
-    Calc.tryCalculate "1 1 +" |> should equal 2
+    let expectedResult : Result<decimal, Error> = Success 2m
+    Calc.tryCalculate "1 1 +" |> should equal expectedResult
 
   [<Test>]
   member x.TenMinusFive() = 
-    Calc.tryCalculate "10 5 -" |> should equal 5
+    let expectedResult : Result<decimal, Error> = Success 5m
+    Calc.tryCalculate "10 5 -" |> should equal expectedResult
 
   [<Test>]
   member x.TenMinusFivePlusFour() = 
-    Calc.tryCalculate "10 5 - 4 +" |> should equal 9
+    let expectedResult : Result<decimal, Error> = Success 9m
+    Calc.tryCalculate "10 5 - 4 +" |> should equal expectedResult
 
   [<Test>]
   member x.NineTimesNine() = 
-    Calc.tryCalculate "9 9 *" |> should equal 81
+    let expectedResult : Result<decimal, Error> = Success 81m
+    Calc.tryCalculate "9 9 *" |> should equal expectedResult
 
   [<Test>]
   member x.TenMod3() = 
-    Calc.tryCalculate "10 3 %" |> should equal 1
+    let expectedResult : Result<decimal, Error> = Success 1m
+    Calc.tryCalculate "10 3 %" |> should equal expectedResult
 
   [<Test>]
   member x.TenDiviedByFour() = 
-    Calc.tryCalculate "10 4 /" |> should equal 2.5m
+    let expectedResult : Result<decimal, Error> = Success 2.5m
+    Calc.tryCalculate "10 4 /" |> should equal expectedResult
 
   [<Test>]
   member x.NegativesAreSupported() = 
-    Calc.tryCalculate "-1 10 + -9 * -1 -" |> should equal -80
+    let expectedResult : Result<decimal, Error> = Success -80m
+    Calc.tryCalculate "-1 10 + -9 * -1 -" |> should equal expectedResult
 
   [<Test>]
   member x.OperatorsAreAppliedFromLeftToRight() = 
-    Calc.tryCalculate "100 50 - 2 / 3 *" |> should equal 75
+    let expectedResult : Result<decimal, Error> = Success 75m
+    Calc.tryCalculate "100 50 - 2 / 3 *" |> should equal expectedResult
 
   [<Test>]
   member x.NumberOnlyReturnsItself() = 
-    Calc.tryCalculate "6" |> should equal 6
+    let expectedResult : Result<decimal, Error> = Success 6m
+    Calc.tryCalculate "6" |> should equal expectedResult
 
   [<Test>]
   member x.NumberOnlyWithWhitespaceReturnsItself() = 
-    Calc.tryCalculate " 7 " |> should equal 7
+    let expectedResult : Result<decimal, Error> = Success 7m
+    Calc.tryCalculate " 7 " |> should equal expectedResult
 
   [<Test>]
   member x.ExcessWhitespaceInCalculationHasNoEffect() = 
-    Calc.tryCalculate "8   9     + 4 * " |> should equal 68
+    let expectedResult : Result<decimal, Error> = Success 68m
+    Calc.tryCalculate "8   9     + 4 * " |> should equal expectedResult
 
   [<Test>]
-  member x.EmptyInputThrowsNoInputException() = 
-    "" |> expectException typeof<NoInputException>
+  member x.EmptyInputReturnsNoInputError() = 
+    let expectedResult : Result<decimal, Error> = Failure NoInputError
+    Calc.tryCalculate "" |> should equal expectedResult
 
   [<Test>]
   member x.DivisionByZeroThrowsDivideByZeroException() = 
-    "6 0 /" |> expectException typeof<DivideByZeroException>
+    let expectedResult : Result<decimal, Error> = Failure DivideByZeroError
+    Calc.tryCalculate "6 0 /" |> should equal expectedResult
 
   [<Test>]
   member x.UnsupportedOperatorThrowsUnsupportedOperatorException() = 

@@ -6,6 +6,7 @@ type Error =
 | NoInputError
 | ExpressionError
 | UnsupportedOperatorError
+| DivideByZeroError
 
 type NoInputException()                 = inherit ApplicationException("No input was provided.")
 type ExpressionException()              = inherit ApplicationException("Each operation requires an operator and exactly two operands.")
@@ -43,14 +44,12 @@ let (|StrNum|_|) str =
     | (true , value) -> Some(value)
     | _ -> None
 
-// string -> Result<CalculationPart, Error>
 let parsePart part =
     match part with
     | StrNum n      -> Success <| Number(n)
     | StrOp o       -> Success <| Operation(o)
     | unrecognised  -> Failure UnsupportedOperatorError
 
-// 'a list -> 'a * 'a list
 let pop stack =
     match stack with
     | top :: rest ->
@@ -60,53 +59,49 @@ let pop stack =
 
 let push part stack = part :: stack
 
-// string -> Result<CalculationPart list, Error>
+let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
+    let rec foldFunc (results : Result<'S,'F> list) (acc : Result<'S list, 'F>) : Result<'S list, 'F> = 
+        match results with
+        | head :: tail ->  
+            match head with
+            | Success s -> 
+                match acc with
+                | Success list -> 
+                    foldFunc tail (Success <| s::list)
+                | Failure f -> acc
+            | Failure f -> Failure f
+        | [] -> acc 
+    let result = foldFunc input <| Success []
+    match result with
+    | Success s -> Success <| List.rev s
+    | Failure f -> result
+
 let parseStack (input : string) = 
-    let parsed = 
-        input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
-        |> Array.map parsePart
-        |> Array.toList
-
-    let firstFail =
-        parsed 
-        |> List.tryPick (function | Success _ -> None | Failure fail -> Some(fail) )
-
-    match firstFail with
-    | Some fail -> Failure fail
-    | _ -> 
-        parsed 
-        |> List.choose (fun result -> match result with | Success s -> Some s | _ -> None)
-        |> Success
+    input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
+    |> Array.map parsePart
+    |> Array.toList
+    |> mergeIfAllSuccess
 
 let rec calculate stack =
     match stack with
-    | Failure fail -> fail
-    | Success validStack ->
-        match validStack with
-        | [] -> Failure NoInputError
-        | [Number n] -> Success n
-        | _ ->
-            let a, stack' = pop validStack
-            let b, stack'' = pop stack'
-            let f, stack''' = pop stack''
-            match (a,b,f) with
-            | Number a', Number b', Operation f' -> 
-                let result = Number(f' a' b')
-                push result stack''' |> Success |> calculate
-            | _ -> Failure ExpressionError
+    | [] -> Failure NoInputError
+    | [Number n] -> Success n
+    | _ ->
+        let a, stack' = pop stack
+        let b, stack'' = pop stack'
+        let f, stack''' = pop stack''
+        match (a,b,f) with
+        | Number a', Number b', Operation f' -> 
+            let result = Number(f' a' b')
+            push result stack''' |> calculate
+        | _ -> Failure ExpressionError
 
 let tryCalculate input = 
-    input
-    |> parseStack
-    |> calculate 
-
-let tryCalculate' input = 
     let parsed = input |> parseStack
     match parsed with
-    | Failure fail -> parsed
-    | Success _ -> parsed |> calculate
-
-
+    | Failure fail -> Failure fail
+    | Success calcList -> calcList |> calculate
+    
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
     String.Join(" ", symbols)
