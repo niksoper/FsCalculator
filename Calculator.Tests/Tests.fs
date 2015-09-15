@@ -7,9 +7,6 @@ open Calc
 open FsUnit
 open NUnit.Framework
 
-let expectException exceptionType input =
-    (fun () -> Calc.tryCalculate input |> ignore) |> should throw exceptionType
-
 [<TestFixture>]
 type AccountTest() =
 
