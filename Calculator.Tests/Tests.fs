@@ -74,29 +74,34 @@ type AccountTest() =
     Calc.tryCalculate "" |> should equal expectedResult
 
   [<Test>]
-  member x.DivisionByZeroThrowsDivideByZeroException() = 
+  member x.DivisionByZeroReturnsDivideByZeroError() = 
     let expectedResult : Result<decimal, Error> = Failure DivideByZeroError
     Calc.tryCalculate "6 0 /" |> should equal expectedResult
 
   [<Test>]
-  member x.UnsupportedOperatorThrowsUnsupportedOperatorException() = 
-    "6 0 |" |> expectException typeof<UnsupportedOperatorException>
+  member x.UnsupportedOperatorReturnsUnsupportedOperatorError() = 
+    let expectedResult : Result<decimal, Error> = Failure <| UnsupportedOperatorError("|")
+    Calc.tryCalculate "6 0 |" |> should equal expectedResult
 
   [<Test>]
-  member x.NoOperandsThrowsOperandException() = 
-    "+" |> expectException typeof<ExpressionException>
+  member x.NoOperandsThrowsExpressionException() = 
+    let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
+    Calc.tryCalculate "+" |> should equal expectedResult
 
   [<Test>]
-  member x.OneOperandThrowsOperandException() = 
-    "7 +" |> expectException typeof<ExpressionException>
+  member x.OneOperandThrowsExpressionException() = 
+    let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
+    Calc.tryCalculate "7 +" |> should equal expectedResult
 
   [<Test>]
-  member x.ThreeOperandsThrowsOperandException() = 
-    "7 6 5 +" |> expectException typeof<ExpressionException>
+  member x.ThreeOperandsThrowsExpressionException() = 
+    let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
+    Calc.tryCalculate "7 6 5 +" |> should equal expectedResult
 
   [<Test>]
-  member x.NoOperatorThrowsOperandException() = 
-    "7 6 5" |> expectException typeof<ExpressionException>
+  member x.NoOperatorThrowsExpressionException() = 
+    let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
+    Calc.tryCalculate "7 6 5" |> should equal expectedResult
 
 
 

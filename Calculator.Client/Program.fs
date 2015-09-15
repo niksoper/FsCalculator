@@ -10,9 +10,10 @@ let intro() =
 
 let errorMessage failure = 
     match failure with
-    | NoInputError -> "No input was provided"
+    | NoInputError -> "No input was provided."
     | ExpressionError -> "Each operation requires an operator and exactly two operands."
-    | UnsupportedOperatorError -> "Unrecognised operator"
+    | UnsupportedOperatorError op -> sprintf "Unrecognised operator: %s" op
+    | DivideByZeroError -> "Cannot divide by zero. Try another universe."
 
 let rec mainLoop() = 
     let input = Console.ReadLine()

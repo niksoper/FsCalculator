@@ -5,12 +5,11 @@ open System
 type Error = 
 | NoInputError
 | ExpressionError
-| UnsupportedOperatorError
+| UnsupportedOperatorError of string
 | DivideByZeroError
 
 type NoInputException()                 = inherit ApplicationException("No input was provided.")
 type ExpressionException()              = inherit ApplicationException("Each operation requires an operator and exactly two operands.")
-type UnsupportedOperatorException(op)   = inherit ApplicationException(sprintf "Unrecognised operator: %s" op)
 
 type Result<'S, 'F> =
 | Success of 'S
@@ -48,7 +47,7 @@ let parsePart part =
     match part with
     | StrNum n      -> Success <| Number(n)
     | StrOp o       -> Success <| Operation(o)
-    | unrecognised  -> Failure UnsupportedOperatorError
+    | unrecognised  -> Failure <| UnsupportedOperatorError(unrecognised)
 
 let pop stack =
     match stack with
@@ -76,11 +75,27 @@ let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
     | Success s -> Success <| List.rev s
     | Failure f -> result
 
+let passStackIfValid (input : string list) : Result<string list, Error> = 
+    let dividingByZero = 
+        input
+        |> List.pairwise
+        |> List.tryFind (function | ("0", "/") -> true | _ -> false )
+    match dividingByZero with
+    | Some _ -> Failure DivideByZeroError
+    | None -> Success input
+
+
 let parseStack (input : string) = 
-    input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
-    |> Array.map parsePart
-    |> Array.toList
-    |> mergeIfAllSuccess
+    let validationResult = 
+        input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
+        |> Array.toList
+        |> passStackIfValid
+    match validationResult with
+    | Failure f -> Failure f
+    | Success s -> 
+        s
+        |> List.map parsePart
+        |> mergeIfAllSuccess
 
 let rec calculate stack =
     match stack with
