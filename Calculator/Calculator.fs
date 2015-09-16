@@ -46,12 +46,12 @@ let parsePart part =
     | StrOp o       -> Success <| Operation(o)
     | unrecognised  -> Failure <| UnsupportedOperatorError(unrecognised)
 
-let pop stack =
+let popResult stack = 
     match stack with
-    | top :: rest ->
-        let newStack = rest
-        Success (top, newStack)
-    | [] -> Failure ExpressionError
+    | Number a :: Number b :: Operation f :: rest -> 
+        let result = Number(f a b)
+        Success(result, rest) 
+    | _ -> Failure ExpressionError
 
 let push part stack = part :: stack
 
@@ -87,17 +87,12 @@ let rec calculate stack =
     | [] -> Failure NoInputError
     | [Number n] -> Success n
     | _ ->
-        pop stack
-        >>= (fun (a, stack') ->  
-            pop stack'    
-            >>= (fun (b, stack'') -> 
-                pop stack''
-                >>= (fun (op, stack''')->                    
-                    match (a,b,op) with
-                    | Number a', Number b', Operation f' ->
-                        let result = Number(f' a' b')
-                        push result stack''' |> calculate
-                    | _ -> Failure ExpressionError)))
+        stack
+        |> popResult
+        >>= (fun (result, stack') -> 
+            stack' 
+            |> push result 
+            |> calculate)
 
 let tryCalculate input = 
     input 
