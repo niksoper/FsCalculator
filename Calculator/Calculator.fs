@@ -60,7 +60,8 @@ let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
         match results with
         | head :: tail -> head >>= (fun s -> acc >>= (fun list -> foldFunc tail (Success <| s::list)))
         | [] -> acc 
-    foldFunc input <| Success []
+    Success []
+    |> foldFunc input
     >>= (fun s -> Success <| List.rev s)
 
 let passStackIfValid (input : string list) : Result<string list, Error> = 
@@ -101,7 +102,7 @@ let rec calculate stack =
 let tryCalculate input = 
     input 
     |> parseStack
-    >>= (fun parsed -> parsed |> calculate)
+    >>= calculate
     
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
