@@ -12,6 +12,13 @@ type Result<'S, 'F> =
 | Success of 'S
 | Failure of 'F
 
+let bind (f : 'S -> Result<'S2,'F2>) m=
+    match m with 
+    | Success s -> f s
+    | Failure f -> Failure f
+
+let (>>=) m f = bind f m 
+
 type CalculationPart =
 | Number of decimal
 | Operation of (decimal -> decimal -> decimal)
@@ -108,10 +115,8 @@ let rec calculate stack =
                     | _ -> Failure ExpressionError
 
 let tryCalculate input = 
-    let parsed = input |> parseStack
-    match parsed with
-    | Failure fail -> Failure fail
-    | Success calcList -> calcList |> calculate
+    let parsedResult = input |> parseStack
+    bind (fun parsed -> parsed |> calculate) parsedResult
     
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
