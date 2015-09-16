@@ -99,20 +99,17 @@ let rec calculate stack =
     | [] -> Failure NoInputError
     | [Number n] -> Success n
     | _ ->
-        match pop stack with
-        | Failure f -> Failure f
-        | Success (a, stack') ->
-            match pop stack' with
-            | Failure f -> Failure f
-            | Success (b, stack'') ->
-                match pop stack'' with
-                | Failure f -> Failure f
-                | Success (op, stack''') ->
+        let result = pop stack
+        bind (fun (a, stack') ->  
+            let result' = pop stack'    
+            bind (fun (b, stack'') -> 
+                let result'' = pop stack''
+                bind (fun (op, stack''')->                    
                     match (a,b,op) with
                     | Number a', Number b', Operation f' ->
                         let result = Number(f' a' b')
                         push result stack''' |> calculate
-                    | _ -> Failure ExpressionError
+                    | _ -> Failure ExpressionError) result'') result') result
 
 let tryCalculate input = 
     let parsedResult = input |> parseStack
