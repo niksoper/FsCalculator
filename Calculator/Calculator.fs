@@ -87,12 +87,10 @@ let parseStack (input : string) =
         input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
         |> Array.toList
         |> passStackIfValid
-    match validationResult with
-    | Failure f -> Failure f
-    | Success s -> 
+    bind (fun s -> 
         s
         |> List.map parsePart
-        |> mergeIfAllSuccess
+        |> mergeIfAllSuccess) validationResult        
 
 let rec calculate stack =
     match stack with
