@@ -12,12 +12,19 @@ type Result<'S, 'F> =
 | Success of 'S
 | Failure of 'F
 
-let bind (f : 'S -> Result<'S2,'F2>) m=
+let bind func m=
     match m with 
-    | Success s -> f s
+    | Success s -> func s
     | Failure f -> Failure f
 
 let (>>=) m f = bind f m 
+
+//TODO correct name
+let liftOne (func: 'a -> 'b) a= 
+    Success (func a)
+
+let liftTwo (func: 'a -> 'b -> 'c) a b = 
+    Success (func a b)
 
 type CalculationPart =
 | Number of decimal
@@ -50,19 +57,25 @@ let popResult stack =
     match stack with
     | Number a :: Number b :: Operation f :: rest -> 
         let result = Number(f a b)
-        Success(result, rest) 
+        Success (result, rest) 
     | _ -> Failure ExpressionError
 
-let push part stack = part :: stack
+let push (part,stack) = part :: stack
+
+let concat a b = a::b
+
+let liftedConcat a b= (liftTwo concat) a b
 
 let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
-    let rec foldFunc (results : Result<'S,'F> list) (acc : Result<'S list, 'F>) : Result<'S list, 'F> = 
+    let rec mergeFunc (results : Result<'S,'F> list) (acc : Result<'S list, 'F>) : Result<'S list, 'F> = 
         match results with
-        | head :: tail -> head >>= (fun s -> acc >>= (fun list -> foldFunc tail (Success <| s::list)))
+        | head :: tail -> 
+            head 
+            >>= (fun x -> acc >>= (fun list -> Success <| x::list))
+            |> (mergeFunc tail)
         | [] -> acc 
-    Success []
-    |> foldFunc input
-    >>= (fun s -> Success <| List.rev s)
+    mergeFunc input (Success [])
+    >>= (liftOne <| List.rev)
 
 let passStackIfValid (input : string list) : Result<string list, Error> = 
     let dividingByZero = 
@@ -77,10 +90,8 @@ let parseStack (input : string) =
     input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
     |> Array.toList
     |> passStackIfValid
-    >>= (fun s -> 
-        s
-        |> List.map parsePart
-        |> mergeIfAllSuccess)        
+    >>= (liftOne <| List.map parsePart)
+    >>= mergeIfAllSuccess       
 
 let rec calculate stack =
     match stack with
@@ -89,10 +100,8 @@ let rec calculate stack =
     | _ ->
         stack
         |> popResult
-        >>= (fun (result, stack') -> 
-            stack' 
-            |> push result 
-            |> calculate)
+        >>= (liftOne push)
+        >>= calculate
 
 let tryCalculate input = 
     input 
