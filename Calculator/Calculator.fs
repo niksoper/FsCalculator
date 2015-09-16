@@ -58,12 +58,10 @@ let push part stack = part :: stack
 let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
     let rec foldFunc (results : Result<'S,'F> list) (acc : Result<'S list, 'F>) : Result<'S list, 'F> = 
         match results with
-        | head :: tail ->  
-            bind (fun s -> 
-                bind (fun list -> foldFunc tail (Success <| s::list)) acc) head
+        | head :: tail -> head >>= (fun s -> acc >>= (fun list -> foldFunc tail (Success <| s::list)))
         | [] -> acc 
-    let result = foldFunc input <| Success []
-    bind (fun s -> Success <| List.rev s) result
+    foldFunc input <| Success []
+    >>= (fun s -> Success <| List.rev s)
 
 let passStackIfValid (input : string list) : Result<string list, Error> = 
     let dividingByZero = 
@@ -75,35 +73,35 @@ let passStackIfValid (input : string list) : Result<string list, Error> =
     | None -> Success input
 
 let parseStack (input : string) = 
-    let validationResult = 
-        input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
-        |> Array.toList
-        |> passStackIfValid
-    bind (fun s -> 
+    input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
+    |> Array.toList
+    |> passStackIfValid
+    >>= (fun s -> 
         s
         |> List.map parsePart
-        |> mergeIfAllSuccess) validationResult        
+        |> mergeIfAllSuccess)        
 
 let rec calculate stack =
     match stack with
     | [] -> Failure NoInputError
     | [Number n] -> Success n
     | _ ->
-        let result = pop stack
-        bind (fun (a, stack') ->  
-            let result' = pop stack'    
-            bind (fun (b, stack'') -> 
-                let result'' = pop stack''
-                bind (fun (op, stack''')->                    
+        pop stack
+        >>= (fun (a, stack') ->  
+            pop stack'    
+            >>= (fun (b, stack'') -> 
+                pop stack''
+                >>= (fun (op, stack''')->                    
                     match (a,b,op) with
                     | Number a', Number b', Operation f' ->
                         let result = Number(f' a' b')
                         push result stack''' |> calculate
-                    | _ -> Failure ExpressionError) result'') result') result
+                    | _ -> Failure ExpressionError)))
 
 let tryCalculate input = 
-    let parsedResult = input |> parseStack
-    bind (fun parsed -> parsed |> calculate) parsedResult
+    input 
+    |> parseStack
+    >>= (fun parsed -> parsed |> calculate)
     
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
