@@ -59,18 +59,11 @@ let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
     let rec foldFunc (results : Result<'S,'F> list) (acc : Result<'S list, 'F>) : Result<'S list, 'F> = 
         match results with
         | head :: tail ->  
-            match head with
-            | Success s -> 
-                match acc with
-                | Success list -> 
-                    foldFunc tail (Success <| s::list)
-                | Failure f -> acc
-            | Failure f -> Failure f
+            bind (fun s -> 
+                bind (fun list -> foldFunc tail (Success <| s::list)) acc) head
         | [] -> acc 
     let result = foldFunc input <| Success []
-    match result with
-    | Success s -> Success <| List.rev s
-    | Failure f -> result
+    bind (fun s -> Success <| List.rev s) result
 
 let passStackIfValid (input : string list) : Result<string list, Error> = 
     let dividingByZero = 
@@ -80,7 +73,6 @@ let passStackIfValid (input : string list) : Result<string list, Error> =
     match dividingByZero with
     | Some _ -> Failure DivideByZeroError
     | None -> Success input
-
 
 let parseStack (input : string) = 
     let validationResult = 
