@@ -26,6 +26,11 @@ let liftOne (func: 'a -> 'b) a=
 let liftTwo (func: 'a -> 'b -> 'c) a b = 
     Success (func a b)
 
+type ResultBuilder() = 
+    member x.Bind(v,f) = bind f v
+    member x.Return v = Success v
+    member x.ReturnFrom r = r
+
 type CalculationPart =
 | Number of decimal
 | Operation of (decimal -> decimal -> decimal)
