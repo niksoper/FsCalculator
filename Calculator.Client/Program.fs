@@ -20,16 +20,11 @@ let rec mainLoop() =
     match input with 
     | "q" | "Q" -> ()
     | _ -> 
-        try
-            let result = Calc.tryCalculate input 
-            match result with
-            | Calc.Success s    -> printfn "%M" s
-            | Calc.Failure fail -> printfn "Error: %s" <| errorMessage fail
-            mainLoop()
-        with
-        | ex ->
-            printfn "Exception: %s" ex.Message
-            mainLoop()
+        let result = Calc.tryCalculate input 
+        match result with
+        | Calc.Success s    -> printfn "%M" s
+        | Calc.Failure fail -> printfn "Error: %s" <| errorMessage fail
+        mainLoop()
 
 [<EntryPoint>]
 let main argv = 
