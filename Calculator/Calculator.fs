@@ -8,19 +8,9 @@ type Error =
 | UnsupportedOperatorError of string
 | DivideByZeroError
 
-type NoInputException()                 = inherit ApplicationException("No input was provided.")
-type ExpressionException()              = inherit ApplicationException("Each operation requires an operator and exactly two operands.")
-
 type Result<'S, 'F> =
 | Success of 'S
 | Failure of 'F
-
-let bind (f : 'S -> Result<'S,'F>)  m =
-    match m with 
-    | Success s -> f s
-    | Failure f -> m
-
-let (>>=) m f = bind f m 
 
 type CalculationPart =
 | Number of decimal
@@ -53,8 +43,8 @@ let pop stack =
     match stack with
     | top :: rest ->
         let newStack = rest
-        (top, newStack)
-    | [] -> raise (ExpressionException())
+        Success (top, newStack)
+    | [] -> Failure ExpressionError
 
 let push part stack = part :: stack
 
@@ -102,14 +92,20 @@ let rec calculate stack =
     | [] -> Failure NoInputError
     | [Number n] -> Success n
     | _ ->
-        let a, stack' = pop stack
-        let b, stack'' = pop stack'
-        let f, stack''' = pop stack''
-        match (a,b,f) with
-        | Number a', Number b', Operation f' -> 
-            let result = Number(f' a' b')
-            push result stack''' |> calculate
-        | _ -> Failure ExpressionError
+        match pop stack with
+        | Failure f -> Failure f
+        | Success (a, stack') ->
+            match pop stack' with
+            | Failure f -> Failure f
+            | Success (b, stack'') ->
+                match pop stack'' with
+                | Failure f -> Failure f
+                | Success (op, stack''') ->
+                    match (a,b,op) with
+                    | Number a', Number b', Operation f' ->
+                        let result = Number(f' a' b')
+                        push result stack''' |> calculate
+                    | _ -> Failure ExpressionError
 
 let tryCalculate input = 
     let parsed = input |> parseStack

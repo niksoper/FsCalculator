@@ -81,22 +81,22 @@ type AccountTest() =
     Calc.tryCalculate "6 0 |" |> should equal expectedResult
 
   [<Test>]
-  member x.NoOperandsThrowsExpressionException() = 
+  member x.NoOperandsReturnsExpressionError() = 
     let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
     Calc.tryCalculate "+" |> should equal expectedResult
 
   [<Test>]
-  member x.OneOperandThrowsExpressionException() = 
+  member x.OneOperandReturnsExpressionError() = 
     let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
     Calc.tryCalculate "7 +" |> should equal expectedResult
 
   [<Test>]
-  member x.ThreeOperandsThrowsExpressionException() = 
+  member x.ThreeOperandsReturnsExpressionError() = 
     let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
     Calc.tryCalculate "7 6 5 +" |> should equal expectedResult
 
   [<Test>]
-  member x.NoOperatorThrowsExpressionException() = 
+  member x.NoOperatorReturnsExpressionError() = 
     let expectedResult : Result<decimal, Error> = Failure <| ExpressionError
     Calc.tryCalculate "7 6 5" |> should equal expectedResult
 
