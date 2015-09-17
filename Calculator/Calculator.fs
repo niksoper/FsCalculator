@@ -109,8 +109,8 @@ let rec calculate stack =
 
 let tryCalculate input = 
     result {
-        let! x = parseStack input
-        return! calculate x
+        let! calcList = parseStack input
+        return! calculate calcList
     }
     
 let supportedOperators = 
