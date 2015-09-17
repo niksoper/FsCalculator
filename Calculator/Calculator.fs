@@ -60,14 +60,12 @@ let parsePart part =
     | StrOp o       -> Success <| Operation(o)
     | unrecognised  -> Failure <| UnsupportedOperatorError(unrecognised)
 
-let popResult stack = 
+let calculateHead stack = 
     match stack with
     | Number a :: Number b :: Operation f :: rest -> 
         let result = Number(f a b)
-        Success (result, rest) 
+        Success (result :: rest)
     | _ -> Failure ExpressionError
-
-let push (part,stack) = part :: stack
 
 let concat a b = a::b
 
@@ -106,14 +104,13 @@ let rec calculate stack =
     | [Number n] -> Success n
     | _ ->
         stack
-        |> popResult
-        >>= (raiseOne push)
+        |> calculateHead
         >>= calculate
 
 let tryCalculate input = 
     result {
         let! x = parseStack input
-        return calculate x
+        return! calculate x
     }
     
 let supportedOperators = 
