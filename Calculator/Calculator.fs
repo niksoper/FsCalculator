@@ -20,16 +20,18 @@ let bind func m=
 let (>>=) m f = bind f m 
 
 //TODO correct name
-let liftOne (func: 'a -> 'b) a= 
+let raiseOne (func: 'a -> 'b) a= 
     Success (func a)
 
-let liftTwo (func: 'a -> 'b -> 'c) a b = 
+let raiseTwo (func: 'a -> 'b -> 'c) a b = 
     Success (func a b)
 
 type ResultBuilder() = 
     member x.Bind(v,f) = bind f v
     member x.Return v = Success v
     member x.ReturnFrom r = r
+
+let result = new ResultBuilder()
 
 type CalculationPart =
 | Number of decimal
@@ -69,7 +71,7 @@ let push (part,stack) = part :: stack
 
 let concat a b = a::b
 
-let liftedConcat a b= (liftTwo concat) a b
+let raisedConcat a b= (raiseTwo concat) a b
 
 let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
     let rec mergeFunc (results : Result<'S,'F> list) (acc : Result<'S list, 'F>) : Result<'S list, 'F> = 
@@ -80,7 +82,7 @@ let mergeIfAllSuccess (input : Result<'S,'F> list) : Result<'S list, 'F> =
             |> (mergeFunc tail)
         | [] -> acc 
     mergeFunc input (Success [])
-    >>= (liftOne <| List.rev)
+    >>= (raiseOne <| List.rev)
 
 let passStackIfValid (input : string list) : Result<string list, Error> = 
     let dividingByZero = 
@@ -95,7 +97,7 @@ let parseStack (input : string) =
     input.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
     |> Array.toList
     |> passStackIfValid
-    >>= (liftOne <| List.map parsePart)
+    >>= (raiseOne <| List.map parsePart)
     >>= mergeIfAllSuccess       
 
 let rec calculate stack =
@@ -105,13 +107,14 @@ let rec calculate stack =
     | _ ->
         stack
         |> popResult
-        >>= (liftOne push)
+        >>= (raiseOne push)
         >>= calculate
 
 let tryCalculate input = 
-    input 
-    |> parseStack
-    >>= calculate
+    result {
+        let! x = parseStack input
+        return calculate x
+    }
     
 let supportedOperators = 
     let symbols = operations |> List.map (fun (c,f) -> c)
